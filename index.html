@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#ff4500">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Workout">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>Workout Log</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:#0a0a0a; color:#e8e8e8; font-family:'JetBrains Mono',monospace; min-height:100vh; }
+    .app { max-width:480px; margin:0 auto; padding:16px 16px 40px; min-height:100vh; background:#0a0a0a; }
+    .nav { display:flex; margin-bottom:20px; border-bottom:2px solid #1e1e1e; }
+    .nav-btn { font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:2px; padding:10px 18px; background:transparent; border:none; color:#444; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; }
+    .nav-btn.active { color:#ff4500; border-bottom-color:#ff4500; }
+    .header { border-bottom:2px solid #ff4500; padding-bottom:10px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:flex-end; }
+    .header h1 { font-family:'Bebas Neue',sans-serif; font-size:34px; letter-spacing:4px; color:#ff4500; line-height:1; }
+    .header .date { font-size:10px; color:#666; }
+    .session-meta { display:flex; gap:8px; margin-bottom:16px; }
+    .meta-box { flex:1; background:#141414; border:1px solid #222; padding:8px; text-align:center; }
+    .meta-box .mlabel { font-size:9px; color:#555; letter-spacing:2px; margin-bottom:2px; }
+    .meta-box .mvalue { font-size:18px; font-family:'Bebas Neue',sans-serif; color:#ff4500; letter-spacing:2px; }
+    .rest-timer { background:#141414; border:1px solid #222; padding:12px; margin-bottom:14px; }
+    .rest-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .rest-lbl { font-size:10px; letter-spacing:3px; color:#555; }
+    .rest-disp { font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:4px; color:#e8e8e8; }
+    .rest-disp.urgent { color:#ff4500; }
+    .rest-bar-bg { height:3px; background:#222; border-radius:2px; overflow:hidden; margin-bottom:8px; }
+    .rest-bar-fill { height:100%; background:#ff4500; transition:width 0.5s linear; border-radius:2px; }
+    .rest-presets { display:flex; gap:5px; flex-wrap:wrap; }
+    .rp { font-family:'Bebas Neue',sans-serif; font-size:13px; padding:4px 10px; background:#0a0a0a; border:1px solid #2a2a2a; color:#555; cursor:pointer; }
+    .rp.active { background:#ff4500; color:#000; border-color:#ff4500; }
+    .rest-stop { font-family:'JetBrains Mono',monospace; font-size:10px; padding:4px 8px; background:transparent; border:1px solid #333; color:#666; cursor:pointer; }
+    .sec-title { font-size:10px; letter-spacing:3px; color:#555; margin-bottom:8px; }
+    .muscle-tabs { display:flex; gap:5px; margin-bottom:12px; flex-wrap:wrap; }
+    .mt { font-family:'Bebas Neue',sans-serif; font-size:14px; letter-spacing:2px; padding:4px 10px; border:1px solid #2a2a2a; background:#141414; color:#555; cursor:pointer; }
+    .mt.active { color:#000; border-color:transparent; }
+    .tdot { display:inline-block; width:5px; height:5px; border-radius:50%; margin-right:4px; vertical-align:middle; }
+    .add-ex { background:#141414; border:1px solid #222; padding:12px; margin-bottom:14px; }
+    .g-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .g-bar-l { display:flex; align-items:center; gap:6px; }
+    .gdot { width:8px; height:8px; border-radius:50%; }
+    .glabel { font-size:10px; letter-spacing:2px; color:#888; }
+    .btn-edit { font-family:'JetBrains Mono',monospace; font-size:10px; padding:3px 8px; background:transparent; border:1px solid #333; color:#555; cursor:pointer; }
+    .ex-sel { width:100%; background:#0a0a0a; border:1px solid #333; color:#e8e8e8; font-family:'JetBrains Mono',monospace; font-size:12px; padding:8px; outline:none; appearance:none; margin-bottom:8px; }
+    .btn-add { background:#ff4500; color:#000; border:none; width:100%; font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:2px; padding:9px; cursor:pointer; }
+    .btn-add:disabled { background:#2a2a2a; color:#444; }
+    .ex-card { background:#141414; border:1px solid #222; margin-bottom:8px; }
+    .ex-hdr { padding:6px 12px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e1e1e; }
+    .ex-hdr-l { display:flex; align-items:center; gap:6px; }
+    .exdot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .exname { font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:2px; color:#e8e8e8; }
+    .exbadge { font-size:9px; letter-spacing:1px; padding:1px 5px; border-radius:2px; font-family:'JetBrains Mono',monospace; opacity:0.8; }
+    .btn-x { background:transparent; color:#444; border:none; font-size:14px; cursor:pointer; padding:4px 8px; }
+    .sets-tbl { width:100%; border-collapse:collapse; }
+    .sets-tbl thead tr { background:#0f0f0f; }
+    .sets-tbl th { font-size:9px; color:#444; letter-spacing:2px; padding:4px 10px; text-align:center; font-weight:normal; }
+    .sets-tbl td { padding:6px 10px; text-align:center; font-size:12px; border-bottom:1px solid #1a1a1a; }
+    .sets-tbl tr:last-child td { border-bottom:none; }
+    .snum { color:#444; font-size:11px; }
+    .wval { font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:1px; }
+    .set-form { display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:8px 12px; background:#0f0f0f; border-top:1px solid #1e1e1e; }
+    .flabel { font-size:9px; color:#555; letter-spacing:2px; margin-bottom:3px; text-align:center; }
+    .finput { width:100%; background:#141414; border:1px solid #2a2a2a; color:#e8e8e8; font-family:'JetBrains Mono',monospace; font-size:16px; padding:8px 6px; text-align:center; outline:none; }
+    .finput:focus { border-color:#ff4500; }
+    .rec-btn { display:block; width:calc(100% - 24px); margin:6px 12px 8px; border:none; font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:2px; padding:8px; cursor:pointer; color:#000; }
+    .empty { text-align:center; padding:28px 20px; color:#2a2a2a; }
+    .empty .icon { font-size:36px; margin-bottom:8px; }
+    .empty p { font-size:11px; letter-spacing:2px; }
+    .note-in { width:100%; background:#141414; border:1px solid #222; border-top:none; color:#888; font-family:'JetBrains Mono',monospace; font-size:11px; padding:8px 12px; outline:none; resize:none; }
+    .footer { margin-top:16px; display:flex; gap:10px; }
+    .btn-fin { flex:1; background:#ff4500; color:#000; border:none; font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:3px; padding:14px; cursor:pointer; }
+    .btn-fin:disabled { background:#2a2a2a; color:#444; }
+    .btn-rst { background:transparent; color:#333; border:1px solid #222; font-family:'JetBrains Mono',monospace; font-size:11px; padding:14px; cursor:pointer; }
+    .overlay { position:fixed; inset:0; background:rgba(0,0,0,0.92); display:flex; align-items:center; justify-content:center; z-index:100; }
+    .sum-card { background:#0f0f0f; border:2px solid #ff4500; padding:24px; width:90%; max-width:400px; max-height:85vh; overflow-y:auto; }
+    .sum-card h2 { font-family:'Bebas Neue',sans-serif; font-size:30px; letter-spacing:4px; color:#ff4500; margin-bottom:14px; }
+    .srow { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #1e1e1e; font-size:12px; }
+    .sk { color:#555; } .sv { color:#e8e8e8; }
+    .sgt { font-family:'Bebas Neue',sans-serif; font-size:13px; letter-spacing:3px; margin-top:14px; margin-bottom:5px; display:flex; align-items:center; gap:8px; }
+    .sgl { flex:1; height:1px; background:#1e1e1e; }
+    .sex { padding:6px 0; border-bottom:1px solid #1a1a1a; }
+    .sexn { font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:2px; color:#e8e8e8; }
+    .sexs { font-size:11px; color:#555; margin-top:1px; }
+    .modal-ov { position:fixed; inset:0; background:rgba(0,0,0,0.88); display:flex; align-items:flex-end; justify-content:center; z-index:200; }
+    .modal-c { background:#111; border-top:2px solid #ff4500; padding:20px; width:100%; max-width:480px; max-height:75vh; overflow-y:auto; }
+    .modal-h { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+    .modal-t { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:3px; }
+    .modal-cl { background:transparent; border:none; color:#555; font-size:22px; cursor:pointer; padding:4px 10px; }
+    .exi { display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid #1a1a1a; }
+    .exin { flex:1; font-size:13px; color:#ccc; }
+    .bico { background:transparent; border:none; cursor:pointer; font-size:16px; padding:6px 8px; color:#444; }
+    .add-row { display:flex; gap:8px; margin-top:12px; }
+    .add-row input { flex:1; background:#0a0a0a; border:1px solid #333; color:#e8e8e8; font-family:'JetBrains Mono',monospace; font-size:14px; padding:10px; outline:none; }
+    .add-row button { font-family:'Bebas Neue',sans-serif; font-size:15px; padding:10px 16px; background:#ff4500; color:#000; border:none; cursor:pointer; }
+    .hcard { background:#141414; border:1px solid #222; margin-bottom:10px; overflow:hidden; }
+    .hhdr { padding:12px 14px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
+    .hdate { font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:2px; color:#e8e8e8; }
+    .hmeta { font-size:10px; color:#555; margin-top:2px; }
+    .hchev { color:#444; font-size:11px; display:inline-block; transition:transform 0.2s; }
+    .hchev.open { transform:rotate(180deg); }
+    .hbody { border-top:1px solid #1e1e1e; padding:10px 14px; }
+    .hgrp { margin-bottom:10px; }
+    .hglbl { font-size:9px; letter-spacing:3px; margin-bottom:5px; }
+    .hex { margin-bottom:5px; }
+    .hexn { font-family:'Bebas Neue',sans-serif; font-size:14px; letter-spacing:1px; color:#e8e8e8; }
+    .hexs { font-size:11px; color:#555; }
+    .hnote { margin-top:8px; padding-top:8px; border-top:1px solid #1a1a1a; font-size:11px; color:#555; }
+    .hdel { font-size:11px; color:#333; background:transparent; border:none; cursor:pointer; font-family:'JetBrains Mono',monospace; padding:4px 10px; }
+    .edit-in { width:100%; background:#0a0a0a; border:1px solid #333; color:#e8e8e8; font-family:'JetBrains Mono',monospace; font-size:14px; padding:5px 8px; text-align:center; outline:none; }
+    @keyframes flash { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .rest-disp.done { animation:flash 0.5s ease 3; color:#ff4500; }
+    .hempty { text-align:center; padding:48px 20px; color:#2a2a2a; }
+    .hempty p { font-size:11px; letter-spacing:2px; }
+  </style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+var DEFAULT_EXERCISES = {
+  chest:["ベンチプレス","インクラインベンチ","デクラインベンチ","チェストフライ","ケーブルクロスオーバー","ディップス"],
+  arms:["バーベルカール","ダンベルカール","ハンマーカール","トライセプスプレス","スカルクラッシャー","ケーブルプッシュダウン"],
+  shoulders:["ショルダープレス","サイドレイズ","フロントレイズ","リアレイズ","アーノルドプレス","アップライトロウ"],
+  back:["デッドリフト","ラットプルダウン","バーベルロウ","ワンハンドロウ","シーテッドロウ","チンニング"],
+  legs:["スクワット","レッグプレス","ランジ","レッグカール","レッグエクステンション","カーフレイズ"]
+};
+var GROUPS = [
+  {id:"chest",label:"胸",color:"#ff4500"},
+  {id:"arms",label:"腕",color:"#ff8c00"},
+  {id:"shoulders",label:"肩",color:"#ffd700"},
+  {id:"back",label:"背中",color:"#00bcd4"},
+  {id:"legs",label:"足",color:"#7c3aed"}
+];
+var REST_S = [60,90,120,180,240,300];
+
+function ld(k,fb){try{return JSON.parse(localStorage.getItem(k)||"null")||fb;}catch(e){return fb;}}
+function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function ft(s){return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");}
+function grpInfo(id){return GROUPS.find(function(g){return g.id===id;})||GROUPS[0];}
+function loadEx(){
+  var saved=ld("custom_exercises",{});
+  var r={};
+  GROUPS.forEach(function(g){r[g.id]=saved[g.id]||DEFAULT_EXERCISES[g.id].slice();});
+  return r;
+}
+
+var S={
+  tab:"workout",
+  startTime:Date.now(),
+  elapsed:0,
+  exercises:[],
+  activeGroupId:"chest",
+  selectedExercise:"",
+  note:"",
+  showSummary:false,
+  restTarget:90,
+  restRemaining:null,
+  history:ld("workout_history",[]),
+  openHistoryId:null,
+  customExercises:loadEx(),
+  showEditModal:false,
+  editingIdx:null,
+  editingVal:"",
+  newExName:"",
+  nextId:1
+};
+S.selectedExercise=(S.customExercises[S.activeGroupId]||[])[0]||"";
+
+var elTimer=setInterval(function(){
+  S.elapsed=Math.floor((Date.now()-S.startTime)/1000);
+  var el=document.querySelector(".elapsed-v");
+  if(el)el.textContent=ft(S.elapsed);
+  updateRest();
+},1000);
+var restTimer=null;
+
+function startRest(s){
+  clearInterval(restTimer);
+  S.restTarget=s;S.restRemaining=s;
+  restTimer=setInterval(function(){
+    if(S.restRemaining<=1){clearInterval(restTimer);S.restRemaining=0;updateRest();return;}
+    S.restRemaining--;updateRest();
+  },1000);
+  updateRest();
+}
+function stopRest(){clearInterval(restTimer);S.restRemaining=null;updateRest();}
+function updateRest(){
+  var d=document.querySelector(".rest-disp");if(!d)return;
+  var rem=S.restRemaining,tgt=S.restTarget;
+  d.textContent=rem!==null?ft(rem):ft(tgt);
+  d.className="rest-disp"+(rem!==null&&rem<=10&&rem>0?" urgent":"")+(rem===0?" done":"");
+  var fill=document.querySelector(".rest-bar-fill");
+  if(fill)fill.style.width=(rem!==null&&tgt>0?(rem/tgt*100):100)+"%";
+  var sb=document.querySelector(".rest-stop-btn");
+  if(sb)sb.style.display=rem!==null?"":"none";
+  document.querySelectorAll(".rp").forEach(function(b){
+    b.className="rp"+(parseInt(b.dataset.s)===tgt?" active":"");
+  });
+}
+
+function render(){
+  var today=new Date();
+  var dateStr=today.toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"long"});
+  var totalSets=S.exercises.reduce(function(a,e){return a+(e.sets?e.sets.length:0);},0);
+  var totalVol=S.exercises.reduce(function(a,e){return a+(e.sets||[]).reduce(function(b,s){return b+s.weight*s.reps;},0);},0);
+  var ag=grpInfo(S.activeGroupId);
+  var ael=S.customExercises[S.activeGroupId]||[];
+
+  var html='<div class="nav">'
+    +'<button class="nav-btn'+(S.tab==="workout"?" active":"")+'" onclick="S.tab=\'workout\';render()">トレーニング</button>'
+    +'<button class="nav-btn'+(S.tab==="history"?" active":"")+'" onclick="S.tab=\'history\';render()">履歴'+(S.history.length>0?" ("+S.history.length+")":"")+'</button>'
+    +'</div>';
+
+  if(S.tab==="workout"){
+    html+='<div class="header"><h1>WORKOUT LOG</h1><div class="date">'+dateStr+'</div></div>';
+    html+='<div class="session-meta">'
+      +'<div class="meta-box"><div class="mlabel">経過時間</div><div class="mvalue elapsed-v">'+ft(S.elapsed)+'</div></div>'
+      +'<div class="meta-box"><div class="mlabel">SETS</div><div class="mvalue sets-val">'+totalSets+'</div></div>'
+      +'<div class="meta-box"><div class="mlabel">VOLUME</div><div class="mvalue vol-val">'+(totalVol>=1000?(totalVol/1000).toFixed(1)+"t":totalVol+"kg")+'</div></div>'
+      +'</div>';
+
+    html+='<div class="rest-timer">'
+      +'<div class="rest-top"><span class="rest-lbl">▸ 休憩タイマー</span>'
+      +'<button class="rest-stop-btn rest-stop" style="display:'+(S.restRemaining!==null?"":"none")+'" onclick="stopRest()">リセット</button></div>'
+      +'<div class="rest-disp'+(S.restRemaining!==null&&S.restRemaining<=10&&S.restRemaining>0?" urgent":"")+(S.restRemaining===0?" done":"")+'">'+( S.restRemaining!==null?ft(S.restRemaining):ft(S.restTarget))+'</div>'
+      +'<div class="rest-bar-bg"><div class="rest-bar-fill" style="width:'+(S.restRemaining!==null&&S.restTarget>0?S.restRemaining/S.restTarget*100:100)+'%"></div></div>'
+      +'<div class="rest-presets">'+REST_S.map(function(s){return '<button class="rp'+(S.restTarget===s?" active":"")+'" data-s="'+s+'" onclick="startRest('+s+')">'+s+'s</button>';}).join("")+'</div>'
+      +'</div>';
+
+    html+='<div class="sec-title">▸ 部位を選択</div>';
+    html+='<div class="muscle-tabs">'+GROUPS.map(function(g){
+      var act=S.activeGroupId===g.id;
+      return '<button class="mt'+(act?" active":"")+'" style="'+(act?"background-color:"+g.color+";color:#000;border-color:transparent":"")+'" onclick="changeGroup(\''+g.id+'\')"><span class="tdot" style="background-color:'+(act?"#000":g.color)+'"></span>'+g.label+'</button>';
+    }).join("")+'</div>';
+
+    html+='<div class="add-ex">'
+      +'<div class="g-bar"><div class="g-bar-l"><div class="gdot" style="background-color:'+ag.color+'"></div><span class="glabel">'+ag.label+'</span></div>'
+      +'<button class="btn-edit" onclick="openModal()">種目を編集</button></div>'
+      +'<select class="ex-sel" id="exSel" onchange="S.selectedExercise=this.value">'
+      +ael.map(function(ex){return '<option'+(ex===S.selectedExercise?" selected":"")+'>'+ex+'</option>';}).join("")
+      +(ael.length===0?'<option value="">種目を追加してください</option>':"")
+      +'</select>'
+      +'<button class="btn-add"'+(S.selectedExercise?"":" disabled")+' onclick="addEx()">+ 追加</button>'
+      +'</div>';
+
+    html+='<div class="sec-title">▸ セッション</div>';
+    if(S.exercises.length===0){
+      html+='<div class="empty"><div class="icon">🏋️</div><p>エクササイズを追加してください</p></div>';
+    } else {
+      S.exercises.forEach(function(ex){
+        var grp=grpInfo(ex.groupId);
+        html+='<div class="ex-card">';
+        html+='<div class="ex-hdr"><div class="ex-hdr-l">'
+          +'<div class="exdot" style="background-color:'+grp.color+'"></div>'
+          +'<span class="exname">'+ex.name+'</span>'
+          +'<span class="exbadge" style="background-color:'+grp.color+'22;color:'+grp.color+'">'+grp.label+'</span>'
+          +'</div>'
+          +'<button class="btn-x" onclick="removeEx('+ex.id+')">✕</button></div>';
+
+        if(ex.sets&&ex.sets.length>0){
+          html+='<table class="sets-tbl" id="tbl'+ex.id+'"><thead><tr><th>SET</th><th>WEIGHT</th><th>REPS</th><th></th></tr></thead><tbody>';
+          ex.sets.forEach(function(st,i){
+            html+='<tr>'
+              +'<td class="snum">#'+(i+1)+'</td>'
+              +'<td><span class="wval" style="color:'+grp.color+'">'+(Number.isInteger(st.weight)?st.weight:st.weight.toFixed(1))+'</span><span style="font-size:10px;color:#444">kg</span></td>'
+              +'<td style="color:#e8e8e8">'+st.reps+'<span style="font-size:10px;color:#444">rep</span></td>'
+              +'<td><button class="btn-x" onclick="removeSet('+ex.id+','+i+')">✕</button></td>'
+              +'</tr>';
+          });
+          html+='</tbody></table>';
+        }
+
+        html+='<div class="set-form">'
+          +'<div><div class="flabel">KG</div><input class="finput" id="kg'+ex.id+'" type="number" inputmode="decimal" placeholder="0" value="0"></div>'
+          +'<div><div class="flabel">REPS</div><input class="finput" id="rp'+ex.id+'" type="number" inputmode="numeric" placeholder="0" value="0"></div>'
+          +'</div>'
+          +'<button class="rec-btn" style="background-color:'+grp.color+'" onclick="doRec('+ex.id+')">+ SET 記録</button>';        html+='</div>';
+      });
+    }
+
+    html+='<textarea class="note-in" rows="2" placeholder="メモ（体調、感想など）" oninput="S.note=this.value">'+S.note+'</textarea>';
+    html+='<div class="footer">'
+      +'<button class="btn-fin"'+(S.exercises.length===0?" disabled":"")+' onclick="finishSession()">FINISH SESSION</button>'
+      +'<button class="btn-rst" onclick="resetW()">RESET</button>'
+      +'</div>';
+  } else {
+    html+='<div class="header"><h1>HISTORY</h1></div>';
+    if(S.history.length===0){
+      html+='<div class="hempty"><div style="font-size:36px">📋</div><p>まだ記録がありません</p></div>';
+    } else {
+      S.history.forEach(function(session){
+        var isOpen=S.openHistoryId===session.id;
+        html+='<div class="hcard">'
+          +'<div class="hhdr" onclick="toggleH('+session.id+')">'
+          +'<div><div class="hdate">'+session.date+'</div><div class="hmeta">'+ft(session.duration)+' ／ '+session.totalSets+'セット ／ '+session.totalVolume+'kg</div></div>'
+          +'<div style="display:flex;align-items:center;gap:10px">'
+          +'<button class="hdel" onclick="event.stopPropagation();delH('+session.id+')">削除</button>'
+          +'<span class="hchev'+(isOpen?" open":"")+'">▼</span>'
+          +'</div></div>';
+        if(isOpen){
+          html+='<div class="hbody">';
+          GROUPS.forEach(function(grp){
+            var items=(session.exercises||[]).filter(function(e){return e.groupId===grp.id;});
+            if(!items.length)return;
+            html+='<div class="hgrp"><div class="hglbl" style="color:'+grp.color+'">'+grp.label+'</div>';
+            items.forEach(function(ex){
+              var mW=ex.sets&&ex.sets.length>0?Math.max.apply(null,ex.sets.map(function(s){return s.weight;})):0;
+              var tR=(ex.sets||[]).reduce(function(a,s){return a+s.reps;},0);
+              html+='<div class="hex"><div class="hexn">'+ex.name+'</div><div class="hexs">'+( ex.sets?ex.sets.length:0)+'セット ／ 最大'+mW+'kg ／ 計'+tR+'rep</div></div>';
+            });
+            html+='</div>';
+          });
+          if(session.note)html+='<div class="hnote">📝 '+session.note+'</div>';
+          html+='</div>';
+        }
+        html+='</div>';
+      });
+    }
+  }
+
+  if(S.showSummary){
+    html+='<div class="overlay" onclick="S.showSummary=false;render()">'
+      +'<div class="sum-card" onclick="event.stopPropagation()">'
+      +'<h2>SESSION COMPLETE</h2>'
+      +'<div class="srow"><span class="sk">DATE</span><span class="sv">'+today.toLocaleDateString("ja-JP")+'</span></div>'
+      +'<div class="srow"><span class="sk">DURATION</span><span class="sv">'+ft(S.elapsed)+'</span></div>'
+      +'<div class="srow"><span class="sk">TOTAL SETS</span><span class="sv">'+totalSets+'</span></div>'
+      +'<div class="srow"><span class="sk">TOTAL VOLUME</span><span class="sv">'+totalVol+'kg</span></div>';
+    GROUPS.forEach(function(grp){
+      var items=S.exercises.filter(function(e){return e.groupId===grp.id;});
+      if(!items.length)return;
+      html+='<div class="sgt" style="color:'+grp.color+'">'+grp.label+'<div class="sgl"></div></div>';
+      items.forEach(function(ex){
+        var mW=ex.sets&&ex.sets.length>0?Math.max.apply(null,ex.sets.map(function(s){return s.weight;})):0;
+        var tR=(ex.sets||[]).reduce(function(a,s){return a+s.reps;},0);
+        html+='<div class="sex"><div class="sexn">'+ex.name+'</div><div class="sexs">'+(ex.sets?ex.sets.length:0)+'セット ／ 最大'+mW+'kg ／ 計'+tR+'rep</div></div>';
+      });
+    });
+    if(S.note)html+='<div style="margin-top:14px;font-size:11px;color:#555;border-top:1px solid #1e1e1e;padding-top:10px">'+S.note+'</div>';
+    html+='<button class="btn-fin" style="margin-top:18px;width:100%" onclick="S.showSummary=false;S.tab=\'history\';render()">履歴を見る</button></div></div>';
+  }
+
+  if(S.showEditModal){
+    html+='<div class="modal-ov" onclick="S.showEditModal=false;render()">'
+      +'<div class="modal-c" onclick="event.stopPropagation()">'
+      +'<div class="modal-h"><div class="modal-t" style="color:'+ag.color+'">'+ag.label+'の種目</div>'
+      +'<button class="modal-cl" onclick="S.showEditModal=false;render()">✕</button></div>';
+    ael.forEach(function(ex,idx){
+      html+='<div class="exi">';
+      if(S.editingIdx===idx){
+        html+='<input class="edit-in" id="editIn" value="'+ex+'" oninput="S.editingVal=this.value" onkeydown="if(event.key===\'Enter\')confirmEdit('+idx+')">'
+          +'<button class="bico" style="color:#ff4500" onclick="confirmEdit('+idx+')">✓</button>'
+          +'<button class="bico" onclick="S.editingIdx=null;render()">✕</button>';
+      } else {
+        html+='<span class="exin">'+ex+'</span>'
+          +'<button class="bico" onclick="S.editingIdx='+idx+';S.editingVal=\''+ex+'\';render()">✎</button>'
+          +'<button class="bico" onclick="delExItem('+idx+')">🗑</button>';
+      }
+      html+='</div>';
+    });
+    html+='<div class="add-row">'
+      +'<input id="newExIn" placeholder="新しい種目を追加" value="'+S.newExName+'" oninput="S.newExName=this.value" onkeydown="if(event.key===\'Enter\')addExItem()">'
+      +'<button onclick="addExItem()">追加</button>'
+      +'</div></div></div>';
+  }
+
+  document.getElementById("app").innerHTML=html;
+}
+
+function doRec(exId){
+  var wEl=document.getElementById("kg"+exId);
+  var rEl=document.getElementById("rp"+exId);
+  if(!wEl||!rEl)return;
+  var ex=S.exercises.find(function(e){return e.id===exId;});
+  if(!ex)return;
+  if(!ex.sets)ex.sets=[];
+  var wVal=wEl.value;
+  var rVal=rEl.value;
+  var w=parseFloat(wVal);
+  var r=parseInt(rVal);
+  if(isNaN(w)||isNaN(r))return;
+  ex.sets.push({weight:w,reps:r});
+  startRest(S.restTarget);
+  // テーブルだけ更新、inputは触らない
+  var grp=grpInfo(ex.groupId);
+  var tbl=document.getElementById("tbl"+exId);
+  if(tbl){
+    var tbody=tbl.querySelector("tbody");
+    var i=ex.sets.length-1;
+    var st=ex.sets[i];
+    var tr=document.createElement("tr");
+    tr.innerHTML='<td class="snum">#'+(i+1)+'</td>'
+      +'<td><span class="wval" style="color:'+grp.color+'">'+(Number.isInteger(st.weight)?st.weight:st.weight.toFixed(1))+'</span><span style="font-size:10px;color:#444">kg</span></td>'
+      +'<td style="color:#e8e8e8">'+st.reps+'<span style="font-size:10px;color:#444">rep</span></td>'
+      +'<td><button class="btn-x" onclick="removeSet('+exId+','+(i)+')">✕</button></td>';
+    tbody.appendChild(tr);
+  } else {
+    render();
+    var newW=document.getElementById("kg"+exId);
+    if(newW)newW.value=w;
+  }
+  // STATSだけ更新
+  var ts=S.exercises.reduce(function(a,e){return a+(e.sets?e.sets.length:0);},0);
+  var tv=S.exercises.reduce(function(a,e){return a+(e.sets||[]).reduce(function(b,s){return b+s.weight*s.reps;},0);},0);
+  var setsEl=document.querySelector(".sets-val");
+  var volEl=document.querySelector(".vol-val");
+  if(setsEl)setsEl.textContent=ts;
+  if(volEl)volEl.textContent=tv>=1000?(tv/1000).toFixed(1)+"t":tv+"kg";
+}
+
+function changeGroup(id){
+  S.activeGroupId=id;
+  S.selectedExercise=(S.customExercises[id]||[])[0]||"";
+  render();
+}
+function openModal(){S.showEditModal=true;S.editingIdx=null;S.newExName="";render();}
+function addEx(){
+  var sel=document.getElementById("exSel");
+  var name=sel?sel.value:S.selectedExercise;
+  if(!name)return;
+  var id=S.nextId++;
+  S.exercises.push({id:id,name:name,groupId:S.activeGroupId,sets:[]});
+  render();
+}
+function removeEx(id){S.exercises=S.exercises.filter(function(e){return e.id!==id;});render();}
+function removeSet(exId,idx){
+  var ex=S.exercises.find(function(e){return e.id===exId;});
+  if(ex)ex.sets=ex.sets.filter(function(_,i){return i!==idx;});
+  render();
+}
+function finishSession(){
+  var today=new Date();
+  var ts=S.exercises.reduce(function(a,e){return a+(e.sets?e.sets.length:0);},0);
+  var tv=S.exercises.reduce(function(a,e){return a+(e.sets||[]).reduce(function(b,s){return b+s.weight*s.reps;},0);},0);
+  var session={id:S.nextId++,date:today.toLocaleDateString("ja-JP"),duration:S.elapsed,exercises:JSON.parse(JSON.stringify(S.exercises)),note:S.note,totalSets:ts,totalVolume:tv};
+  S.history.unshift(session);
+  sv("workout_history",S.history);
+  S.showSummary=true;
+  render();
+}
+function delH(id){S.history=S.history.filter(function(h){return h.id!==id;});sv("workout_history",S.history);render();}
+function toggleH(id){S.openHistoryId=S.openHistoryId===id?null:id;render();}
+function resetW(){S.exercises=[];S.note="";stopRest();render();}
+function addExItem(){
+  var inp=document.getElementById("newExIn");
+  var name=inp?inp.value.trim():S.newExName.trim();
+  if(!name)return;
+  S.customExercises[S.activeGroupId]=(S.customExercises[S.activeGroupId]||[]).concat([name]);
+  sv("custom_exercises",S.customExercises);
+  S.selectedExercise=name;S.newExName="";render();
+}
+function delExItem(idx){
+  var list=S.customExercises[S.activeGroupId]||[];
+  var removed=list[idx];
+  S.customExercises[S.activeGroupId]=list.filter(function(_,i){return i!==idx;});
+  sv("custom_exercises",S.customExercises);
+  if(S.selectedExercise===removed)S.selectedExercise=(S.customExercises[S.activeGroupId]||[])[0]||"";
+  render();
+}
+function confirmEdit(idx){
+  var inp=document.getElementById("editIn");
+  var val=inp?inp.value.trim():S.editingVal.trim();
+  if(!val)return;
+  var list=S.customExercises[S.activeGroupId]||[];
+  var old=list[idx];
+  S.customExercises[S.activeGroupId]=list.map(function(e,i){return i===idx?val:e;});
+  sv("custom_exercises",S.customExercises);
+  if(S.selectedExercise===old)S.selectedExercise=val;
+  S.editingIdx=null;render();
+}
+
+render();
+if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");
+</script>
+</body>
+</html>
